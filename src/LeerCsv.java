@@ -1,6 +1,11 @@
 import Entidades.Piloto;
 import Entidades.Tweet;
 import Entidades.Usuario;
+import uy.edu.um.prog2.adt.Hash.Exceptions.HashLleno;
+import uy.edu.um.prog2.adt.Hash.MyHash;
+import uy.edu.um.prog2.adt.Hash.MyHashImpl;
+import uy.edu.um.prog2.adt.linkedlist.MyLinkedList;
+import uy.edu.um.prog2.adt.linkedlist.MyList;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -20,8 +25,10 @@ public class LeerCsv {
         }
         return listaPilotos;
     }
-    public static Tweet[] leerTweets() throws IOException {
-        Tweet[] listaDeTweets = new Tweet[700000];
+    public static CSVReaderReturn leerTweets() throws IOException, HashLleno {
+        Tweet[] listaDeTweets = new Tweet[633000];
+        MyList<String> nombresUsuarios = new MyLinkedList<>();
+        MyHash<String,Usuario> usuarios = new MyHashImpl<>(140000);
         String pathDataset ="C:\\Users\\Matias\\Desktop\\Facultad\\grupo-p2-obligatorio\\src\\DATASET\\f1_dataset.csv";
         String linea="";
         int tweets_contador=0;
@@ -48,12 +55,20 @@ public class LeerCsv {
             Tweet nuevoTweet = new Tweet(Long.parseLong(tweet[0]), tweet[10], tweet[12], Boolean.parseBoolean(tweet[13]),tweet[11],tweet[9],usuarioTweet);
             listaDeTweets[tweets_contador]=nuevoTweet;
             tweets_contador++;
+            if(usuarios.get(nuevoTweet.getUsuarioTweet().getNombreUsuario())==null){
+                    usuarios.add(nuevoTweet.getUsuarioTweet().getNombreUsuario(),nuevoTweet.getUsuarioTweet());
+                    nombresUsuarios.add(nuevoTweet.getUsuarioTweet().getNombreUsuario());
+            }
+            else{
+                usuarios.get(nuevoTweet.getUsuarioTweet().getNombreUsuario()).getValue().setCantidadTweets(usuarios.get(nuevoTweet.getUsuarioTweet().getNombreUsuario()).getValue().getCantidadTweets()+1);
+            }
+            }
+        return new CSVReaderReturn(listaDeTweets,usuarios,nombresUsuarios);
+    }
 
     }
-        return listaDeTweets;}
 
 
 
 
 
-}

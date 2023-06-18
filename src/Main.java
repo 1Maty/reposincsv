@@ -6,7 +6,6 @@ import uy.edu.um.prog2.adt.Hash.Exceptions.HashLleno;
 import uy.edu.um.prog2.adt.Hash.MyHash;
 import uy.edu.um.prog2.adt.Hash.MyHashImpl;
 import uy.edu.um.prog2.adt.linkedlist.Exceptions.IlegalIndexException;
-import uy.edu.um.prog2.adt.linkedlist.MyLinkedList;
 import uy.edu.um.prog2.adt.linkedlist.MyList;
 
 import java.io.IOException;
@@ -14,20 +13,26 @@ import java.util.Scanner;
 
 public class Main {
     Scanner input = new Scanner(System.in);
+    MyHash<String,Usuario> usuarios;
+    MyList<String> nombresUsuarios;
     Tweet[] tweets ;
     Piloto[] pilotos;
 
    public Main(){
-    try{
-        this.pilotos=LeerCsv.leerPilotos();
-        this.tweets=LeerCsv.leerTweets();
-    }catch (IOException e) {
+    try {
+        CSVReaderReturn cositas = LeerCsv.leerTweets();
+        this.pilotos = LeerCsv.leerPilotos();
+        this.tweets = cositas.getTweets();
+        this.usuarios= cositas.getUsuarios();
+        this.nombresUsuarios= cositas.getNombresUsuarios();
+    } catch (IOException e) {
         throw new RuntimeException(e);
-    } //catch (IlegalIndexException e) {
-        //throw new RuntimeException(e);
+    } catch (HashLleno e) {
+        throw new RuntimeException(e);
     }
-   //}
-    public void topPilotosActivos(){
+       }
+    public void topPilotosActivos() throws HashLleno {
+        MyHash<String,Integer> contadorPilotos = new MyHashImpl<>(20);
         System.out.print("Ingresa el año:");
         String año= input.nextLine();
         System.out.print("Ingresa el mes:");
@@ -44,9 +49,16 @@ public class Main {
                    String apellidoPilotoMinuscula=apellidoPiloto.toLowerCase();
                    String nombrePilotoMinuscula=nombrePiloto.toLowerCase();
                     if(enMinuscula.contains(apellidoPilotoMinuscula)||enMinuscula.contains(nombrePilotoMinuscula)){
-                        pilotos[j].setContador(pilotos[j].getContador()+1);
+                        //pilotos[j].setContador(pilotos[j].getContador()+1);
+                        if(contadorPilotos.get(pilotos[j].getNombre())==null) contadorPilotos.add(pilotos[j].getNombre(),1);
+                        else{
+                            contadorPilotos.get(pilotos[j].getNombre()).setValue(contadorPilotos.get(pilotos[j].getNombre()).getValue()+1);
+                        }
                 }}
            }
+       }
+       for(int i=0;i<pilotos.length;i++){
+           pilotos[i].setContador(contadorPilotos.get(pilotos[i].getNombre()).getValue());
        }
 
         boolean cambiados;
@@ -150,29 +162,16 @@ public class Main {
    }
    public void usuariosConMasTweets() throws HashLleno, IlegalIndexException {
        long startTime = System.nanoTime();
-       MyList<String> nombreUsuarios = new MyLinkedList<>();
-       MyHash<String,Usuario> usuarios = new MyHashImpl<>(150000);
-       for(int i=1;i< tweets.length;i++){
-           if(tweets[i]==null)break;
-           if(usuarios.get(tweets[i].getUsuarioTweet().getNombreUsuario())==null){
-               nombreUsuarios.add(tweets[i].getUsuarioTweet().getNombreUsuario());
-               usuarios.add(tweets[i].getUsuarioTweet().getNombreUsuario(),tweets[i].getUsuarioTweet());
-           }
-           else{
-               usuarios.get(tweets[i].getUsuarioTweet().getNombreUsuario()).getValue().setCantidadTweets(tweets[i].getUsuarioTweet().getCantidadTweets()+1);
-           }
-       }
-       int tamañoUsuarios = nombreUsuarios.size();
+
+       int tamañoUsuarios = nombresUsuarios.size();
        Usuario[] usuariosAOrdenar = new Usuario[tamañoUsuarios];
-       for(int i=0;i<nombreUsuarios.size();i++){
-           usuariosAOrdenar[i]=usuarios.get(nombreUsuarios.get(i)).getValue();
+       for(int i=0;i< nombresUsuarios.size();i++){
+           usuariosAOrdenar[i]=usuarios.get(nombresUsuarios.get(i)).getValue();
        }
-       for(int i=0;i<usuariosAOrdenar.length;i++){
-           Usuario[] listaChica = new Usuario[10000];
-           listaChica[i]=usuariosAOrdenar[i];
-           if(i==10000) break;
+       MergeSort(usuariosAOrdenar);
+       for(int i=0;i<15;i++){
+           System.out.println(i+1+"--> "+usuariosAOrdenar[tamañoUsuarios-1-i].getNombreUsuario()+" Cantidad de Tweets: "+usuariosAOrdenar[tamañoUsuarios-1-i].getCantidadTweets()+" Verficado: "+usuariosAOrdenar[tamañoUsuarios-1-i].getVerificado());
        }
-       Usuario[] usariosOrdenados=Quicksort(usuariosAOrdenar);
        long endTime = System.nanoTime();
        double durationInSeconds = (endTime - startTime) / 1_000_000_000.0;
        System.out.println();
@@ -183,38 +182,54 @@ public class Main {
 
 
 
-        public  Usuario[]  Quicksort(Usuario[] listaUsuarios){
-            quickSort(listaUsuarios, 0, listaUsuarios.length - 1);
-   return listaUsuarios;
-   }
+        public  static void  MergeSort(Usuario[] listaUsuarios){
+       int largo=listaUsuarios.length;
+       if(largo<=1) return;
+       int medio=largo/2;
+       Usuario[] arrayDeLaIzquierda = new Usuario[medio];
+       Usuario[] arrayDeLaDerecha = new Usuario[largo-medio];
 
-        public static void quickSort(Usuario[] array, int low, int high) {
-            if (low < high) {
-                int pivotIndex = partition(array, low, high);
-                quickSort(array, low, pivotIndex - 1);
-                quickSort(array, pivotIndex + 1, high);
+       int i=0;//array de la izquierda
+             int j = 0; // array de la derecha
+            for(;i<largo;i++){
+                if(i<medio){
+                    arrayDeLaIzquierda[i]=listaUsuarios[i];
+                }
+                else{arrayDeLaDerecha[j]=listaUsuarios[i];
+                j++;}
             }
+            MergeSort(arrayDeLaIzquierda);
+            MergeSort(arrayDeLaDerecha);
+            merge(arrayDeLaIzquierda,arrayDeLaDerecha,listaUsuarios);
         }
-
-        public static int partition(Usuario[] array, int low, int high) {
-            Usuario pivot = array[high];
-            int i = low - 1;
-
-            for (int j = low; j < high; j++) {
-                if (array[j].getCantidadTweets() < pivot.getCantidadTweets()) {
+        private static void merge(Usuario[] arrayDeLaIzquierda,Usuario[] arrayDeLaDerecha,Usuario[] listaDeUsuarios){
+            int tamañoIzquierda=listaDeUsuarios.length/2;
+            int tamañoDerecha= listaDeUsuarios.length-tamañoIzquierda;
+            int i=0;
+            int l=0;
+            int r=0;
+            while(l<tamañoIzquierda && r<tamañoDerecha){
+                if(arrayDeLaIzquierda[l].getCantidadTweets()<arrayDeLaDerecha[r].getCantidadTweets()){
+                    listaDeUsuarios[i]=arrayDeLaIzquierda[l];
                     i++;
-                    swap(array, i, j);
+                    l++;
+                }
+                else{
+                    listaDeUsuarios[i]=arrayDeLaDerecha[r];
+                    i++;
+                    r++;
                 }
             }
-
-            swap(array, i + 1, high);
-            return i + 1;
-        }
-
-        public static void swap(Usuario[] array, int i, int j) {
-            Usuario temp = array[i];
-            array[i] = array[j];
-            array[j] = temp;
+            while(l<tamañoIzquierda){
+                listaDeUsuarios[i] = arrayDeLaIzquierda[l];
+                i++;
+                l++;
+            }
+            while(r<tamañoDerecha){
+                listaDeUsuarios[i] = arrayDeLaDerecha[r];
+                i++;
+                r++;
+            }
         }
 
 
